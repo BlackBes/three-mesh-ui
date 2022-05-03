@@ -50,6 +50,10 @@ export default class FrameMaterialUtils {
 	static ensureUserData( threeMaterial, materialOptions ) {
 		threeMaterial.userData.borderColor = { value: null };
 		threeMaterial.userData.borderRadius = { value: new Vector4(0,0,0,0) };
+		threeMaterial.userData.cornerTL = { value : new Vector2(0,0) };
+		threeMaterial.userData.cornerTR = { value : new Vector2(0,0) };
+		threeMaterial.userData.cornerBR = { value : new Vector2(0,0) };
+		threeMaterial.userData.cornerBL = { value : new Vector2(0,0) };
 		threeMaterial.userData.borderWidth = { value: new Vector4(0,0,0,0) };
 		threeMaterial.userData.borderOpacity = { value: null };
 		threeMaterial.userData.frameSize = { value: new Vector2( 1, 1 ) };
@@ -66,6 +70,10 @@ export default class FrameMaterialUtils {
 
 		shader.uniforms.borderColor = threeMaterial.userData.borderColor;
 		shader.uniforms.borderRadius = threeMaterial.userData.borderRadius;
+		shader.uniforms.cornerTL = threeMaterial.userData.cornerTL;
+		shader.uniforms.cornerTR = threeMaterial.userData.cornerTR;
+		shader.uniforms.cornerBR = threeMaterial.userData.cornerBR;
+		shader.uniforms.cornerBL = threeMaterial.userData.cornerBL;
 		shader.uniforms.borderWidth = threeMaterial.userData.borderWidth;
 		shader.uniforms.borderOpacity = threeMaterial.userData.borderOpacity;
 		shader.uniforms.frameSize = threeMaterial.userData.frameSize;
@@ -181,6 +189,153 @@ const _uniformsOrUserData = function( material, property, value ) {
 
 }
 
+const _borderRadius = function( material, property, value ) {
+
+	// console.log( value );
+	const corners = _radiusToCorner(value);
+
+	if( material.userData[property] ) {
+
+		material.userData[property].value.copy( value );
+
+		// convert border radius to corners
+		material.userData.cornerTL.value.x = corners[0][0];
+		material.userData.cornerTL.value.y = corners[0][1];
+
+		material.userData.cornerTR.value.x = corners[1][0];
+		material.userData.cornerTR.value.y = corners[1][1];
+
+		material.userData.cornerBR.value.x = corners[2][0];
+		material.userData.cornerBR.value.y = corners[2][1];
+
+		material.userData.cornerBL.value.x = corners[3][0];
+		material.userData.cornerBL.value.y = corners[3][1];
+
+
+	}else{
+
+		material.uniforms[property].value.copy( value );
+
+		// console.log( material.uniforms.cornerTL.value );
+
+		// convert border radius to corners
+		material.uniforms.cornerTL.value.x = corners[0][0];
+		material.uniforms.cornerTL.value.y = corners[0][1];
+
+		material.uniforms.cornerTR.value.x = corners[1][0];
+		material.uniforms.cornerTR.value.y = corners[1][1];
+
+		material.uniforms.cornerBR.value.x = corners[2][0];
+		material.uniforms.cornerBR.value.y = corners[2][1];
+
+		material.uniforms.cornerBL.value.x = corners[3][0];
+		material.uniforms.cornerBL.value.y = corners[3][1];
+
+	}
+
+}
+
+const _radiusToCorner = function( value ) {
+
+	const order = ['x', 'y', 'z', 'w'];
+	order.sort( (axisA, axisB) => {
+		if( value[axisA] > value[axisB] ) return -1;
+		if( value[axisA] < value[axisB] ) return 1;
+		return 0;
+	})
+
+	for ( let i = 0; i < order.length; i++ ) {
+		const axis = order[ i ];
+
+		if( axis === 'x' ) {
+
+			if( value.x + value.y > 1.0 || value.x + value.w > 1.0 ) {
+
+				console.log( "AxisX" )
+				// scale to bigggest value
+				const halfRatio = ( Math.max( value.y, value.w ) / value.x ) / 2;
+				value.y = halfRatio;
+				value.w = halfRatio;
+
+				value.x *= halfRatio;
+
+			}
+
+		}
+
+		if( axis === 'y' ) {
+
+			if( value.y + value.x > 1.0 || value.y + value.z > 1.0 ) {
+
+
+				console.log( "AxisY" )
+
+				// scale to bigggest value
+				const halfRatio = ( Math.max( value.x, value.z ) / value.y ) / 2;
+				value.x = halfRatio;
+				value.z = halfRatio;
+
+				value.y *= halfRatio;
+
+			}
+
+		}
+
+		if( axis === 'z' ) {
+
+			if( value.z + value.y > 1.0 || value.z + value.w > 1.0 ) {
+
+
+				console.log( "Axisz" )
+
+				// scale to bigggest value
+				const halfRatio = ( Math.max( value.y, value.w ) / value.z ) / 2;
+				value.y = halfRatio;
+				value.w = halfRatio;
+
+				value.z *= halfRatio;
+
+			}
+
+		}
+
+		if( axis === 'w' ) {
+
+			if( value.w + value.z > 1.0 || value.w + value.x > 1.0 ) {
+
+
+				console.log( "AxisW" )
+				// scale to bigggest value
+				const halfRatio = ( Math.max( value.z, value.x ) / value.z ) / 2;
+				value.z = halfRatio;
+				value.x = halfRatio;
+
+				value.w *= halfRatio;
+
+			}
+
+		}
+
+	}
+
+
+
+
+	var topLeft = [ value.x, 1.0 - value.x ];
+	var topRight = [ 1 - value.y, 1 - value.y ];
+	var bottomRight = [ 1 - value.z , value.z ];
+	var bottomLeft = [ value.w, value.w ];
+
+
+	return [
+		[ value.x, 1.0 - value.x ],
+		[ 1 - value.y, 1 - value.y ],
+		[ 1 - value.z , value.z ],
+		[ value.w, value.w ]
+	]
+
+}
+
 const _backgroundSizeTransformer = function( material, property, value ) {
 
 	value = ['stretch','contain','cover'].indexOf(value);
@@ -210,7 +365,8 @@ const _frameMaterialProperties = {
 	backgroundSize: { m: 'u_backgroundMapping', t: _backgroundSizeTransformer },
 	_borderWidth: { m: 'borderWidth', t: _uniformsOrUserData },
 	borderColor: { m: 'borderColor', t: _uniformsOrUserData },
-	_borderRadius: { m: 'borderRadius', t: _uniformsOrUserData },
+	// _borderRadius: { m: 'borderRadius', t: _uniformsOrUserData },
+	_borderRadius: { m: 'borderRadius', t: _borderRadius },
 	borderOpacity: { m: 'borderOpacity', t: _uniformsOrUserData },
 	size: { m: 'frameSize', t: _uniformsOrUserData },
 	tSize: { m: 'textureSize', t: _uniformsOrUserData }

@@ -653,6 +653,8 @@ export default function MeshUIComponent( Base ) {
 			// in one batch, and the rest in the other. This way, efficient animation is possible with
 			// attribute from the light batch.
 
+			const additionalMaterialTransfer = {};
+
 			for ( const prop of Object.keys( options ) ) {
 
 				if ( this[ prop ] != options[ prop ] ) {
@@ -745,34 +747,43 @@ export default function MeshUIComponent( Base ) {
 						// abstracted properties, those properties don't need to be store as this[prop] = value
 						case 'borderRadius' :
 							this._fourDimensionsValueSetter( this._borderRadius, value);
+							additionalMaterialTransfer._borderRadius = this._borderRadius;
 							break;
 						case 'borderRadiusTopLeft':
 							this._borderRadius.x = value;
+							additionalMaterialTransfer._borderRadius = this._borderRadius;
 							break;
 						case 'borderRadiusTopRight':
 							this._borderRadius.y = value;
+							additionalMaterialTransfer._borderRadius = this._borderRadius;
 							break;
 						case 'borderRadiusBottomRight':
 							this._borderRadius.z = value;
+							additionalMaterialTransfer._borderRadius = this._borderRadius;
 							break;
 						case 'borderRadiusBottomLeft':
 							this._borderRadius.w = value;
+							additionalMaterialTransfer._borderRadius = this._borderRadius;
 							break;
 						case 'borderRadiusTop':
 							this._borderRadius.x = value;
 							this._borderRadius.y = value;
+							additionalMaterialTransfer._borderRadius = this._borderRadius;
 							break;
 						case 'borderRadiusRight':
 							this._borderRadius.y = value;
 							this._borderRadius.z = value;
+							additionalMaterialTransfer._borderRadius = this._borderRadius;
 							break;
 						case 'borderRadiusLeft':
 							this._borderRadius.x = value;
 							this._borderRadius.w = value;
+							additionalMaterialTransfer._borderRadius = this._borderRadius;
 							break
 						case 'borderRadiusBottom':
 							this._borderRadius.z = value;
 							this._borderRadius.w = value;
+							additionalMaterialTransfer._borderRadius = this._borderRadius;
 							break;
 
 
@@ -858,7 +869,7 @@ export default function MeshUIComponent( Base ) {
 
 
 			//
-			this._transferToMaterial( options );
+			this._transferToMaterial( { ...options, ...additionalMaterialTransfer } );
 
 
 
