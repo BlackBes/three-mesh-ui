@@ -159,7 +159,7 @@ function init() {
 	panelScale = bottomMiddleRight;
 	// bottomMiddleRight.frame.material = new MeshDepthMaterial();
 	const bottomRight = makeBoxForBorder('BorderBottomRight');
-	bottomRight.set({borderWidth:'0.1 0.2 0.3 0.05', borderColor: new Color(0x99ffff)});
+	bottomRight.set({borderRadius:'0 1.0 0 0'});
 	// middleRight.set({borderRadiusBottomRight:0.1});
 	bottom.add( bottomLeft, bottomMiddleLeft, bottomMiddle, bottomMiddleRight, bottomRight)
 	console.log( bottom.frame.customDepthMaterial );
