@@ -1,219 +1,226 @@
 /* eslint-disable camelcase */
 //@TODO: Get rid of non camelcase uniforms
 
-import { ShaderMaterial, Vector2 } from 'three';
+import {DoubleSide, ShaderMaterial, Vector2} from 'three';
 import Defaults from '../../utils/Defaults.js';
 
 /**
 
-Job:
-- Host the materials of a given component.
-- Update a component's materials clipping planes.
-- Update a material uniforms and such.
+ Job:
+ - Host the materials of a given component.
+ - Update a component's materials clipping planes.
+ - Update a material uniforms and such.
 
-Knows:
-- Its component materials.
-- Its component ancestors clipping planes.
+ Knows:
+ - Its component materials.
+ - Its component ancestors clipping planes.
 
  */
-export default function MaterialManager( Base ) {
+export default function MaterialManager(Base) {
 
-	return class MaterialManager extends Base {
+    return class MaterialManager extends Base {
 
-		constructor( options ) {
+        constructor(options) {
 
-			super( options );
+            super(options);
 
-			this.textUniforms = {
-				u_texture: { value: null },
-				u_color: { value: null },
-				u_opacity: { value: null },
-				u_pxRange: { value: null },
-				u_useRGSS: { value: null },
-			};
+            this.textUniforms = {
+                u_texture: {value: null},
+                u_color: {value: null},
+                u_opacity: {value: null},
+                u_pxRange: {value: null},
+                u_useRGSS: {value: null},
+            };
 
-			this.backgroundUniforms = {
-				u_texture: { value: null },
-				u_color: { value: null },
-				u_opacity: { value: null },
-				u_backgroundMapping: { value: null },
-				u_borderWidth: { value: null },
-				u_borderColor: { value: null },
-				u_borderRadiusTopLeft: { value: null },
-				u_borderRadiusTopRight: { value: null },
-				u_borderRadiusBottomRight: { value: null },
-				u_borderRadiusBottomLeft: { value: null },
-				u_borderOpacity: { value: null },
-				u_size: { value: new Vector2( 1, 1 ) },
-				u_tSize: { value: new Vector2( 1, 1 ) }
-			};
+            this.backgroundUniforms = {
+                u_texture: {value: null},
+                u_color: {value: null},
+                u_opacity: {value: null},
+                u_backgroundMapping: {value: null},
+                u_borderWidth: {value: null},
+                u_borderColor: {value: null},
+                u_borderRadiusTopLeft: {value: null},
+                u_borderRadiusTopRight: {value: null},
+                u_borderRadiusBottomRight: {value: null},
+                u_borderRadiusBottomLeft: {value: null},
+                u_borderOpacity: {value: null},
+                u_size: {value: new Vector2(1, 1)},
+                u_tSize: {value: new Vector2(1, 1)},
+                u_isBloom: {value: null},
+                u_bloomWidth: {value: null},
+                u_isInnerGlow: {value: null}
+            };
 
-		}
+        }
 
-		/**
-		 * Update backgroundMaterial uniforms.
-		 * Used within MaterialManager and in Block and InlineBlock innerUpdates.
-		 */
-		updateBackgroundMaterial() {
+        /**
+         * Update backgroundMaterial uniforms.
+         * Used within MaterialManager and in Block and InlineBlock innerUpdates.
+         */
+        updateBackgroundMaterial() {
 
-			this.backgroundUniforms.u_texture.value = this.getBackgroundTexture();
+            this.backgroundUniforms.u_texture.value = this.getBackgroundTexture();
+            this.backgroundUniforms.u_isBloom.value = this.getIsBloom();
+            this.backgroundUniforms.u_bloomWidth.value = this.getBloomWidth();
+            this.backgroundUniforms.u_isInnerGlow.value = this.getIsInnerGlow();
 
-			this.backgroundUniforms.u_tSize.value.set(
-				this.backgroundUniforms.u_texture.value.image.width,
-				this.backgroundUniforms.u_texture.value.image.height
-			);
+            this.backgroundUniforms.u_tSize.value.set(
+                this.backgroundUniforms.u_texture.value.image.width,
+                this.backgroundUniforms.u_texture.value.image.height
+            );
 
-			if ( this.size ) this.backgroundUniforms.u_size.value.copy( this.size );
+            if (this.size) this.backgroundUniforms.u_size.value.copy(this.size);
 
-			if ( this.backgroundUniforms.u_texture.value.isDefault ) {
+            if (this.backgroundUniforms.u_texture.value.isDefault) {
 
-				this.backgroundUniforms.u_color.value = this.getBackgroundColor();
+                this.backgroundUniforms.u_color.value = this.getBackgroundColor();
 
-				this.backgroundUniforms.u_opacity.value = this.getBackgroundOpacity();
+                this.backgroundUniforms.u_opacity.value = this.getBackgroundOpacity();
 
-			} else {
+            } else {
 
-				this.backgroundUniforms.u_color.value = this.backgroundColor || Defaults.backgroundWhiteColor;
+                this.backgroundUniforms.u_color.value = this.backgroundColor || Defaults.backgroundWhiteColor;
 
-				this.backgroundUniforms.u_opacity.value = ( !this.backgroundOpacity && this.backgroundOpacity !== 0 ) ?
-					Defaults.backgroundOpaqueOpacity :
-					this.backgroundOpacity;
+                this.backgroundUniforms.u_opacity.value = (!this.backgroundOpacity && this.backgroundOpacity !== 0) ?
+                    Defaults.backgroundOpaqueOpacity :
+                    this.backgroundOpacity;
 
-			}
+            }
 
-			this.backgroundUniforms.u_backgroundMapping.value = ( () => {
+            this.backgroundUniforms.u_backgroundMapping.value = (() => {
 
-				switch ( this.getBackgroundSize() ) {
+                switch (this.getBackgroundSize()) {
 
-					case 'stretch':
-						return 0;
-					case 'contain':
-						return 1;
-					case 'cover':
-						return 2;
+                    case 'stretch':
+                        return 0;
+                    case 'contain':
+                        return 1;
+                    case 'cover':
+                        return 2;
 
-				}
+                }
 
-			} )();
+            })();
 
-			const borderRadius = this.getBorderRadius();
-			this.backgroundUniforms.u_borderWidth.value = this.getBorderWidth();
-			this.backgroundUniforms.u_borderColor.value = this.getBorderColor();
-			this.backgroundUniforms.u_borderOpacity.value = this.getBorderOpacity();
+            const borderRadius = this.getBorderRadius();
+            this.backgroundUniforms.u_borderWidth.value = this.getBorderWidth();
+            this.backgroundUniforms.u_borderColor.value = this.getBorderColor();
+            this.backgroundUniforms.u_borderOpacity.value = this.getBorderOpacity();
 
-			//
+            //
 
-			if ( Array.isArray( borderRadius ) ) {
+            if (Array.isArray(borderRadius)) {
 
-				this.backgroundUniforms.u_borderRadiusTopLeft.value = borderRadius[ 0 ];
-				this.backgroundUniforms.u_borderRadiusTopRight.value = borderRadius[ 1 ];
-				this.backgroundUniforms.u_borderRadiusBottomRight.value = borderRadius[ 2 ];
-				this.backgroundUniforms.u_borderRadiusBottomLeft.value = borderRadius[ 3 ];
+                this.backgroundUniforms.u_borderRadiusTopLeft.value = borderRadius[0];
+                this.backgroundUniforms.u_borderRadiusTopRight.value = borderRadius[1];
+                this.backgroundUniforms.u_borderRadiusBottomRight.value = borderRadius[2];
+                this.backgroundUniforms.u_borderRadiusBottomLeft.value = borderRadius[3];
 
-			} else {
+            } else {
 
-				this.backgroundUniforms.u_borderRadiusTopLeft.value = borderRadius;
-				this.backgroundUniforms.u_borderRadiusTopRight.value = borderRadius;
-				this.backgroundUniforms.u_borderRadiusBottomRight.value = borderRadius;
-				this.backgroundUniforms.u_borderRadiusBottomLeft.value = borderRadius;
+                this.backgroundUniforms.u_borderRadiusTopLeft.value = borderRadius;
+                this.backgroundUniforms.u_borderRadiusTopRight.value = borderRadius;
+                this.backgroundUniforms.u_borderRadiusBottomRight.value = borderRadius;
+                this.backgroundUniforms.u_borderRadiusBottomLeft.value = borderRadius;
 
-			}
+            }
 
-		}
+        }
 
-		/**
-		 * Update backgroundMaterial uniforms.
-		 * Used within MaterialManager and in Text innerUpdates.
-		 */
-		updateTextMaterial() {
+        /**
+         * Update backgroundMaterial uniforms.
+         * Used within MaterialManager and in Text innerUpdates.
+         */
+        updateTextMaterial() {
 
-			this.textUniforms.u_texture.value = this.getFontTexture();
-			this.textUniforms.u_color.value = this.getFontColor();
-			this.textUniforms.u_opacity.value = this.getFontOpacity();
-			this.textUniforms.u_pxRange.value = this.getFontPXRange();
-			this.textUniforms.u_useRGSS.value = this.getFontSupersampling();
+            this.textUniforms.u_texture.value = this.getFontTexture();
+            this.textUniforms.u_color.value = this.getFontColor();
+            this.textUniforms.u_opacity.value = this.getFontOpacity();
+            this.textUniforms.u_pxRange.value = this.getFontPXRange();
+            this.textUniforms.u_useRGSS.value = this.getFontSupersampling();
 
-		}
+        }
 
-		/** Called by Block, which needs the background material to create a mesh */
-		getBackgroundMaterial() {
+        /** Called by Block, which needs the background material to create a mesh */
+        getBackgroundMaterial() {
 
-			if ( !this.backgroundMaterial || !this.backgroundUniforms ) {
+            if (!this.backgroundMaterial || !this.backgroundUniforms) {
 
-				this.backgroundMaterial = this._makeBackgroundMaterial();
+                this.backgroundMaterial = this._makeBackgroundMaterial();
 
-			}
+            }
 
-			return this.backgroundMaterial;
+            return this.backgroundMaterial;
 
-		}
+        }
 
-		/** Called by Text to get the font material */
-		getFontMaterial() {
+        /** Called by Text to get the font material */
+        getFontMaterial() {
 
-			if ( !this.fontMaterial || !this.textUniforms ) {
+            if (!this.fontMaterial || !this.textUniforms) {
 
-				this.fontMaterial = this._makeTextMaterial();
+                this.fontMaterial = this._makeTextMaterial();
 
-			}
+            }
 
-			return this.fontMaterial;
+            return this.fontMaterial;
 
-		}
+        }
 
-		/** @private */
-		_makeTextMaterial() {
+        /** @private */
+        _makeTextMaterial() {
 
-			return new ShaderMaterial( {
-				uniforms: this.textUniforms,
-				transparent: true,
-				clipping: true,
-				vertexShader: textVertex,
-				fragmentShader: textFragment,
-				extensions: {
-					derivatives: true
-				}
-			} );
+            return new ShaderMaterial({
+                uniforms: this.textUniforms,
+                transparent: true,
+                clipping: true,
+                vertexShader: textVertex,
+                fragmentShader: textFragment,
+                extensions: {
+                    derivatives: true
+                }
+            });
 
-		}
+        }
 
-		/** @private */
-		_makeBackgroundMaterial() {
+        /** @private */
+        _makeBackgroundMaterial() {
 
-			return new ShaderMaterial( {
-				uniforms: this.backgroundUniforms,
-				transparent: true,
-				clipping: true,
-				vertexShader: backgroundVertex,
-				fragmentShader: backgroundFragment,
-				extensions: {
-					derivatives: true
-				}
-			} );
+            return new ShaderMaterial({
+                uniforms: this.backgroundUniforms,
+                transparent: true,
+                clipping: true,
+                // side: DoubleSide,
+                vertexShader: backgroundVertex,
+                fragmentShader: backgroundFragment,
+                extensions: {
+                    derivatives: true
+                }
+            });
 
-		}
+        }
 
-		/**
-		 * Update a component's materials clipping planes.
-		 * Called every frame.
-		 */
-		updateClippingPlanes( value ) {
+        /**
+         * Update a component's materials clipping planes.
+         * Called every frame.
+         */
+        updateClippingPlanes(value) {
 
-			const newClippingPlanes = value !== undefined ? value : this.getClippingPlanes();
+            const newClippingPlanes = value !== undefined ? value : this.getClippingPlanes();
 
-			if ( JSON.stringify( newClippingPlanes ) !== JSON.stringify( this.clippingPlanes ) ) {
+            if (JSON.stringify(newClippingPlanes) !== JSON.stringify(this.clippingPlanes)) {
 
-				this.clippingPlanes = newClippingPlanes;
+                this.clippingPlanes = newClippingPlanes;
 
-				if ( this.fontMaterial ) this.fontMaterial.clippingPlanes = this.clippingPlanes;
+                if (this.fontMaterial) this.fontMaterial.clippingPlanes = this.clippingPlanes;
 
-				if ( this.backgroundMaterial ) this.backgroundMaterial.clippingPlanes = this.clippingPlanes;
+                if (this.backgroundMaterial) this.backgroundMaterial.clippingPlanes = this.clippingPlanes;
 
-			}
+            }
 
-		}
+        }
 
-	};
+    };
 
 }
 
@@ -331,20 +338,16 @@ varying vec2 vUv;
 #include <clipping_planes_pars_vertex>
 
 void main() {
-
 	vUv = uv;
-	vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-	gl_Position = projectionMatrix * mvPosition;
+	gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 
 	#include <clipping_planes_vertex>
-
 }
 `;
 
 //
 
 const backgroundFragment = `
-
 uniform sampler2D u_texture;
 uniform vec3 u_color;
 uniform float u_opacity;
@@ -359,6 +362,9 @@ uniform float u_borderOpacity;
 uniform vec2 u_size;
 uniform vec2 u_tSize;
 uniform int u_backgroundMapping;
+uniform bool u_isBloom;
+uniform float u_bloomWidth;
+uniform bool u_isInnerGlow;
 
 varying vec2 vUv;
 
@@ -392,7 +398,7 @@ float getEdgeDist() {
 	}
 }
 
-vec4 sampleTexture() {
+vec2 calcNewUV() {
 	float textureRatio = u_tSize.x / u_tSize.y;
 	float panelRatio = u_size.x / u_size.y;
 	vec2 uv = vUv;
@@ -417,30 +423,54 @@ vec4 sampleTexture() {
 			uv.x = newX;
 		}
 	}
+	
+	return uv;
+}
+
+vec4 sampleTexture(vec2 uv) {
 	return texture2D( u_texture, uv ).rgba;
 }
 
 void main() {
-
 	float edgeDist = getEdgeDist();
 	float change = fwidth( edgeDist );
 
-	vec4 textureSample = sampleTexture();
+	vec2 newUV = calcNewUV();
+	vec4 textureSample = sampleTexture(newUV);
 	vec3 blendedColor = textureSample.rgb * u_color;
-
+	
 	float alpha = smoothstep( change, 0.0, edgeDist );
 	float blendedOpacity = u_opacity * textureSample.a * alpha;
 
 	vec4 frameColor = vec4( blendedColor, blendedOpacity );
+	if(frameColor.a == 0.0) discard;
 
+	vec4 basicPixel = vec4(0);
+	//Rendering border
+    vec4 borderColor = vec4( u_borderColor, u_borderOpacity * alpha );
+    
 	if ( u_borderWidth <= 0.0 ) {
-		gl_FragColor = frameColor;
-	} else {
-		vec4 borderColor = vec4( u_borderColor, u_borderOpacity * alpha );
-		float stp = smoothstep( edgeDist + change, edgeDist, u_borderWidth * -1.0 );
-		gl_FragColor = mix( frameColor, borderColor, stp );
+	    if(u_isBloom == true) {
+            borderColor = vec4(borderColor.x, borderColor.y, borderColor.z, 0);
+            float stp = smoothstep( 0.0, u_bloomWidth, edgeDist * -1.0 );
+            vec4 rawPixel = mix( borderColor, frameColor, stp );
+            basicPixel = vec4(rawPixel.x, rawPixel.y, rawPixel.z,  rawPixel.a);
+        } else {
+            basicPixel = frameColor;
+        } 
+	} else {	
+		//Inner Glow, can be helpful!
+		if( u_isInnerGlow == true ) {
+		    float stp = smoothstep( change, edgeDist, u_borderWidth * -1.0 );
+		    basicPixel = mix( frameColor, borderColor, stp );
+		} else {        
+            float stp = smoothstep( edgeDist + change, edgeDist, u_borderWidth * -1.0 );
+            basicPixel = mix( frameColor, borderColor, stp );
+        }
 	}
-
+    gl_FragColor = basicPixel;
+	
+	
 	#include <clipping_planes_fragment>
 }
 `;

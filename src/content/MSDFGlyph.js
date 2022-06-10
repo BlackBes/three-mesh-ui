@@ -9,7 +9,7 @@ export default class MSDFGlyph extends PlaneBufferGeometry {
 
 	constructor( inline, font ) {
 
-		const char = inline.glyph;
+		let char = inline.glyph;
 		const fontSize = inline.fontSize;
 
 		super( fontSize, fontSize );
@@ -17,7 +17,13 @@ export default class MSDFGlyph extends PlaneBufferGeometry {
 		// Misc glyphs
 		if ( char.match( /\s/g ) === null ) {
 
-			if ( font.info.charset.indexOf( char ) === -1 ) console.error( `The character '${char}' is not included in the font characters set.` );
+			if ( font.info.charset.indexOf( char ) === -1 ) {
+				// console.error(`The character '${char}' is not included in the font characters set.`);
+				char = '□';
+				if ( font.info.charset.indexOf( '□' ) === -1 ) {
+					char = "?";
+				}
+			}
 
 			this.mapUVs( font, char );
 

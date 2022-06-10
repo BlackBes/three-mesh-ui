@@ -111,9 +111,9 @@ function getFontOf( component ) {
 
 	const record = records[ component.id ];
 
-	if ( !record && component.parentUI ) {
+	if ( !record && component.getUIParent() ) {
 
-		return getFontOf( component.parentUI );
+		return getFontOf( component.getUIParent() );
 
 	}
 

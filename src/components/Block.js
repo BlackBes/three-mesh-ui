@@ -38,17 +38,12 @@ export default class Block extends mix.withBase( Object3D )(
 
 		// This is for hiddenOverflow to work
 		this.frame.onBeforeRender = () => {
-
 			if ( this.updateClippingPlanes ) {
-
 				this.updateClippingPlanes();
-
 			}
-
 		};
 
 		this.add( this.frame );
-
 		// Lastly set the options parameters to this object, which will trigger an update
 
 		this.set( options );
@@ -63,13 +58,17 @@ export default class Block extends mix.withBase( Object3D )(
 
 		const bestFit = this.getBestFit();
 
-		if ( bestFit != 'none' && this.childrenTexts.length ) {
+		if ( bestFit != 'none' && ( this.children.find( child => child.isText ) ) ) {
 
 			this.calculateBestFit( bestFit );
 
 		} else {
 
-			this.childrenTexts.forEach( child => {
+			this.children.filter( child => {
+
+				return child.isText;
+
+			} ).forEach( child => {
 
 				child._fitFontSize = undefined;
 
@@ -84,6 +83,7 @@ export default class Block extends mix.withBase( Object3D )(
 		const WIDTH = this.getWidth();
 
 		const HEIGHT = this.getHeight();
+
 
 		if ( !WIDTH || !HEIGHT ) {
 
@@ -111,7 +111,7 @@ export default class Block extends mix.withBase( Object3D )(
 		// Position inner elements according to dimensions and layout parameters.
 		// Delegate to BoxComponent.
 
-		if ( this.childrenInlines.length ) {
+		if ( this.children.find( child => child.isInline ) ) {
 
 			this.computeInlinesPosition();
 
@@ -122,7 +122,7 @@ export default class Block extends mix.withBase( Object3D )(
 		// We check if this block is the root component,
 		// because most of the time the user wants to set the
 		// root component's z position themselves
-		if ( this.parentUI ) {
+		if ( this.getUIParent() ) {
 
 			this.position.z = this.getOffset();
 
@@ -137,7 +137,7 @@ export default class Block extends mix.withBase( Object3D )(
 		// We check if this block is the root component,
 		// because most of the time the user wants to set the
 		// root component's z position themselves
-		if ( this.parentUI ) {
+		if ( this.getUIParent() ) {
 
 			this.position.z = this.getOffset();
 

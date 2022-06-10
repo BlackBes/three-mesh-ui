@@ -284,9 +284,9 @@ export default class Keyboard extends mix.withBase( Object3D )( BoxComponent, Me
 
 			const newContent = this.isLowerCase || !char.upperCase ? char.lowerCase : char.upperCase;
 
-			if ( !key.childrenTexts.length ) return;
+			const textComponent = key.children.find( child => child.isText );
 
-			const textComponent = key.childrenTexts[0];
+			if ( !textComponent ) return;
 
 			key.info.input = newContent;
 
@@ -311,9 +311,9 @@ export default class Keyboard extends mix.withBase( Object3D )( BoxComponent, Me
 
 			const newContent = this.isLowerCase || !char.upperCase ? char.lowerCase : char.upperCase;
 
-			if ( !key.childrenTexts.length ) return;
+			const textComponent = key.children.find( child => child.isText );
 
-			const textComponent = key.childrenTexts[0];
+			if ( !textComponent ) return;
 
 			key.info.input = newContent;
 

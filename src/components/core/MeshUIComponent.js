@@ -1,11 +1,9 @@
-import { Plane } from 'three';
-import { Vector3 } from 'three';
+import {Plane, Vector3} from 'three';
 
 import FontLibrary from './FontLibrary.js';
 import UpdateManager from './UpdateManager.js';
 
 import DEFAULTS from '../../utils/Defaults.js';
-import { warnAboutDeprecatedAlignItems } from '../../utils/block-layout/AlignItems';
 
 /**
 
@@ -31,17 +29,6 @@ export default function MeshUIComponent( Base ) {
 			this.isUI = true;
 			this.autoLayout = true;
 
-			// children
-			this.childrenUIs = [];
-			this.childrenBoxes = [];
-			this.childrenTexts = [];
-			this.childrenInlines = [];
-
-			// parents
-			this.parentUI = null;
-			// update parentUI when this component will be added or removed
-			this.addEventListener( 'added', this._rebuildParentUI );
-			this.addEventListener( 'removed', this._rebuildParentUI );
 		}
 
 		/////////////
@@ -52,12 +39,12 @@ export default function MeshUIComponent( Base ) {
 
 			const planes = [];
 
-			if ( this.parentUI ) {
+			if ( this.parent && this.parent.isUI ) {
 
-				if ( this.isBlock && this.parentUI.getHiddenOverflow() ) {
+				if ( this.isBlock && this.parent.getHiddenOverflow() ) {
 
-					const yLimit = ( this.parentUI.getHeight() / 2 ) - ( this.parentUI.padding || 0 );
-					const xLimit = ( this.parentUI.getWidth() / 2 ) - ( this.parentUI.padding || 0 );
+					const yLimit = ( this.parent.getHeight() / 2 ) - ( this.parent.padding[0] || 0 );
+					const xLimit = ( this.parent.getWidth() / 2 ) - ( this.parent.padding[1] || 0 );
 
 					const newPlanes = [
 						new Plane( new Vector3( 0, 1, 0 ), yLimit ),
@@ -76,9 +63,9 @@ export default function MeshUIComponent( Base ) {
 
 				}
 
-				if ( this.parentUI.parentUI ) {
+				if ( this.parent.parent && this.parent.parent.isUI ) {
 
-					planes.push( ...this.parentUI.getClippingPlanes() );
+					planes.push( ...this.parent.getClippingPlanes() );
 
 				}
 
@@ -88,10 +75,37 @@ export default function MeshUIComponent( Base ) {
 
 		}
 
+		//
+
+		getUIChildren() {
+
+			return this.children.filter( ( child ) => {
+
+				return child.isUI;
+
+			} );
+
+		}
+
+		//
+
+		getUIParent() {
+
+			if ( this.parent && this.parent.isUI ) {
+
+				return this.parent;
+
+			}
+
+			return null;
+
+
+		}
+
 		/** Get the highest parent of this component (the parent that has no parent on top of it) */
 		getHighestParent() {
 
-			if ( !this.parentUI ) {
+			if ( !this.getUIParent() ) {
 
 				return this;
 
@@ -108,7 +122,7 @@ export default function MeshUIComponent( Base ) {
 		 */
 		_getProperty( propName ) {
 
-			if ( this[ propName ] === undefined && this.parentUI ) {
+			if ( this[ propName ] === undefined && this.getUIParent() ) {
 
 				return this.parent._getProperty( propName );
 
@@ -163,12 +177,6 @@ export default function MeshUIComponent( Base ) {
 		getWhiteSpace() {
 
 			return this._getProperty( 'whiteSpace' );
-
-		}
-
-		getTextAlign() {
-
-			return this._getProperty( 'textAlign' );
 
 		}
 
@@ -252,9 +260,9 @@ export default function MeshUIComponent( Base ) {
 
 			i = i || 0;
 
-			if ( this.parentUI ) {
+			if ( this.getUIParent() ) {
 
-				return this.parentUI.getParentsNumber( i + 1 );
+				return this.parent.getParentsNumber( i + 1 );
 
 			}
 
@@ -285,19 +293,9 @@ export default function MeshUIComponent( Base ) {
 
 		}
 
-		/**
-		 * @deprecated
-		 * @returns {string}
-		 */
 		getAlignContent() {
 
 			return this.alignContent || DEFAULTS.alignContent;
-
-		}
-
-		getAlignItems() {
-
-			return this.alignItems || DEFAULTS.alignItems;
 
 		}
 
@@ -343,46 +341,21 @@ export default function MeshUIComponent( Base ) {
 
 		}
 
+		getIsBloom() {
+			return ( this.isBloom === undefined ) ? DEFAULTS.isBloom : this.isBloom;
+		}
+
+		getBloomWidth() {
+			return ( this.bloomWidth === undefined ) ? DEFAULTS.bloomWidth : this.bloomWidth;
+		}
+
+		getIsInnerGlow() {
+			return ( this.isInnerGlow === undefined ) ? DEFAULTS.isInnerGlow : this.isInnerGlow;
+		}
+
 		///////////////
 		///  UPDATE
 		///////////////
-
-		/**
-		 * Filters children in order to compute only one times children lists
-		 * @private
-		 */
-		_rebuildChildrenLists() {
-
-			// Stores all children that are ui
-			this.childrenUIs = this.children.filter( child => child.isUI );
-
-			// Stores all children that are box
-			this.childrenBoxes = this.children.filter( child => child.isBoxComponent );
-
-			// Stores all children that are inline
-			this.childrenInlines = this.children.filter( child => child.isInline );
-
-			// Stores all children that are text
-			this.childrenTexts = this.children.filter( child => child.isText );
-		}
-
-		/**
-		 * Try to retrieve parentUI after each structural change
-		 * @private
-		 */
-		_rebuildParentUI = ( ) => {
-
-			if ( this.parent && this.parent.isUI ) {
-
-				this.parentUI = this.parent;
-
-			} else {
-
-				this.parentUI = null;
-
-			}
-
-		};
 
 		/**
 		 * When the user calls component.add, it registers for updates,
@@ -397,11 +370,7 @@ export default function MeshUIComponent( Base ) {
 
 			}
 
-			const result = super.add( ...arguments );
-
-			this._rebuildChildrenLists();
-
-			return result;
+			return super.add( ...arguments );
 
 		}
 
@@ -418,11 +387,7 @@ export default function MeshUIComponent( Base ) {
 
 			}
 
-			const result = super.remove( ...arguments );
-
-			this._rebuildChildrenLists();
-
-			return result;
+			return super.remove( ...arguments );
 
 		}
 
@@ -472,7 +437,6 @@ export default function MeshUIComponent( Base ) {
 		 * Update this component unless otherwise specified.
 		 */
 		set( options ) {
-
 			let parsingNeedsUpdate, layoutNeedsUpdate, innerNeedsUpdate;
 
 			// Register to the update manager, so that it knows when to update
@@ -483,35 +447,8 @@ export default function MeshUIComponent( Base ) {
 
 			if ( !options || JSON.stringify( options ) === JSON.stringify( {} ) ) return;
 
-			// DEPRECATION Warnings until -------------------------------------- 7.x.x ---------------------------------------
-
-			// Align content has been removed
-			if( options["alignContent"] ){
-
-				options["alignItems"] = options["alignContent"];
-
-				if( !options["textAlign"] ){
-
-					options["textAlign"] = options["alignContent"];
-
-				}
-
-				console.warn("`alignContent` property has been deprecated, please rely on `alignItems` and `textAlign` instead.")
-
-				delete options["alignContent"];
-
-			}
-
-			// Align items left top bottom right will be removed
-			if( options['alignItems'] ){
-
-				warnAboutDeprecatedAlignItems( options['alignItems'] );
-
-			}
-
-
 			// Set this component parameters according to options, and trigger updates accordingly
-			// The benefit of having two types of updates, is to put everthing that takes time
+			// The benefit of having two types of updates, is to put everything that takes time
 			// in one batch, and the rest in the other. This way, efficient animation is possible with
 			// attribute from the light batch.
 
@@ -540,11 +477,41 @@ export default function MeshUIComponent( Base ) {
 							break;
 
 						case 'width' :
+							this[ prop ] = options[ prop ];
+							layoutNeedsUpdate = true;
+							break;
 						case 'height' :
+							this[ prop ] = options[ prop ];
+							layoutNeedsUpdate = true;
+							break;
 						case 'padding' :
 							if ( this.isInlineBlock || ( this.isBlock && this.getBestFit() != 'none' ) ) parsingNeedsUpdate = true;
 							layoutNeedsUpdate = true;
-							this[ prop ] = options[ prop ];
+							let value = options[prop];
+							if(typeof value === "number") {
+								this[ prop ] = [value, value, value, value];
+							} else if(Array.isArray(value)) {
+								switch (value.length) {
+									case 1:
+										this[ prop ] = [value[0], value[0], value[0], value[0]];
+										break;
+									case 2:
+										this[ prop ] = [value[0], value[1], value[0], value[1]];
+										break;
+									case 3:
+										this[ prop ] = [value[0], value[1], value[2], value[1]];
+										break;
+									case 4:
+										this[ prop ] = value;
+										break;
+								}
+								if(value.length > 4) {
+									this[ prop ] = value.slice(0, 4);
+								}
+							} else {
+								this[ prop ] = [0, 0, 0, 0];
+							}
+
 							break;
 
 						case 'letterSpacing' :
@@ -553,13 +520,36 @@ export default function MeshUIComponent( Base ) {
 							layoutNeedsUpdate = true;
 							this[ prop ] = options[ prop ];
 							break;
-
 						case 'margin' :
+							let mValue = options[prop];
+							//console.log(mValue);
+							if(typeof mValue === "number") {
+								this[ prop ] = [mValue, mValue, mValue, mValue];
+							} else if(Array.isArray(mValue)) {
+								switch (mValue.length) {
+									case 1:
+										this[ prop ] = [mValue[0], mValue[0], mValue[0], mValue[0]];
+										break;
+									case 2:
+										this[ prop ] = [mValue[0], mValue[1], mValue[0], mValue[1]];
+										break;
+									case 3:
+										this[ prop ] = [mValue[0], mValue[1], mValue[0], mValue[2]];
+										break;
+									case 4:
+										this[ prop ] = mValue;
+										break;
+								}
+								if(mValue.length > 4) {
+									this[ prop ] = mValue.slice(0, 4);
+								}
+							} else {
+								this[ prop ] = [0, 0, 0, 0];
+							}
+							break;
 						case 'contentDirection' :
 						case 'justifyContent' :
 						case 'alignContent' :
-						case 'alignItems' :
-						case 'textAlign' :
 						case 'textType' :
 							layoutNeedsUpdate = true;
 							this[ prop ] = options[ prop ];
@@ -573,6 +563,9 @@ export default function MeshUIComponent( Base ) {
 						case 'backgroundOpacity' :
 						case 'backgroundTexture' :
 						case 'backgroundSize' :
+						case 'isBloom' :
+						case 'bloomWidth' :
+						case 'isInnerGlow' :
 						case 'borderRadius' :
 						case 'borderWidth' :
 						case 'borderColor' :
@@ -606,12 +599,12 @@ export default function MeshUIComponent( Base ) {
 			}
 
 			// if font kerning changes for a child of a block with Best Fit enabled, we need to trigger parsing for the parent as well.
-			if ( this.parentUI && this.parentUI.getBestFit() != 'none' ) this.parentUI.update( true, true, false );
+			const parent = this.getUIParent();
+			if ( parent && parent.getBestFit() != 'none' ) parent.update( true, true, false );
 
 			// Call component update
 
 			this.update( parsingNeedsUpdate, layoutNeedsUpdate, innerNeedsUpdate );
-
 
 			if ( layoutNeedsUpdate ) this.getHighestParent().update( false, true, false );
 
@@ -637,7 +630,7 @@ export default function MeshUIComponent( Base ) {
 			const savedState = this.states[ state ];
 
 			if ( !savedState ) {
-				console.warn( `state "${state}" does not exist within this component:`, this.name );
+				console.warn( `state "${state}" does not exist within this component` );
 				return;
 			}
 
@@ -645,7 +638,7 @@ export default function MeshUIComponent( Base ) {
 
 			this.currentState = state;
 
-			if ( savedState.onSet ) savedState.onSet();
+			if ( savedState.onSet ) savedState.onSet(this);
 
 			if ( savedState.attributes ) this.set( savedState.attributes );
 
